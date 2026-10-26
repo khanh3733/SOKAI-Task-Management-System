@@ -1,0 +1,79 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@{
+    var page = Model.Page;
+}
+@if (page == "Departments")
+{
+    <section class="panel">
+        <h2>Add department</h2>
+        @using (Html.BeginForm("SaveDepartment", "Home", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <div class="filter-bar">
+                <input class="form-control" name="departmentName" maxlength="100" placeholder="Department name" required />
+                <input class="form-control" name="description" maxlength="500" placeholder="Description" />
+                <button class="btn btn-primary" type="submit">Add department</button>
+            </div>
+        }
+    </section>
+    <section class="panel">
+        <div class="table-responsive">
+            <table class="table app-table">
+                <thead>
+                    <tr>
+                        <th>Department name</th>
+                        <th>Count</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Departments.Any())
+                    {
+                        foreach (var department in Model.Departments)
+                        {
+                            <tr>
+                                <td>@department.DepartmentName</td>
+                                <td>
+                                    @department.Employees.Count(e => e.IsActive)
+                                </td>
+                                <td>@department.Description</td>
+                                <td>
+                                    <button class="btn btn-xs btn-default" type="button" data-toggle="collapse" data-target="#department-edit-@department.DepartmentId">Edit</button>
+                                    @if (User.IsInRole("Admin") && !department.Employees.Any())
+                                    {
+                                        using (Html.BeginForm("DeleteDepartment", "Home", new { id = department.DepartmentId }, FormMethod.Post, new { style = "display:inline" }))
+                                        {
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-xs btn-danger" type="submit">Delete</button>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr id="department-edit-@department.DepartmentId" class="collapse">
+                                <td colspan="4">
+                                    @using (Html.BeginForm("SaveDepartment", "Home", FormMethod.Post))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@department.DepartmentId" />
+                                        <div class="filter-bar">
+                                            <input class="form-control" name="departmentName" value="@department.DepartmentName" maxlength="100" required />
+                                            <input class="form-control" name="description" value="@department.Description" maxlength="500" />
+                                            <button class="btn btn-primary" type="submit">Save</button>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="empty-state">No department data.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}

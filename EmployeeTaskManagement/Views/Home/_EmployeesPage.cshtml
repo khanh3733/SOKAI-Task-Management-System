@@ -1,0 +1,300 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@using Microsoft.AspNet.Identity
+<section class="panel">
+    <h2>@(User.IsInRole("Admin") ? "Create account" : "Create user account")</h2>
+    @using (Html.BeginForm("CreateUserAccount", "Home", FormMethod.Post, new { @class = "account-create-form", novalidate = "novalidate" }))
+    {
+        @Html.AntiForgeryToken()
+        <div class="account-form-feedback" role="alert" aria-live="polite" hidden></div>
+        <div class="filter-bar">
+            <div class="account-field">
+                <input class="form-control" name="FullName" maxlength="100" placeholder="Full name" required aria-describedby="create-error-FullName" />
+                <span class="field-validation-error" data-valmsg-for="FullName" id="create-error-FullName"></span>
+            </div>
+            <div class="account-field">
+                <input class="form-control" name="Username" maxlength="50" minlength="3" placeholder="Username" required aria-describedby="create-error-Username" />
+                <span class="field-validation-error" data-valmsg-for="Username" id="create-error-Username"></span>
+            </div>
+            <div class="account-field">
+                <input class="form-control" name="Email" type="email" maxlength="256" placeholder="Email address" required aria-describedby="create-error-Email" />
+                <span class="field-validation-error" data-valmsg-for="Email" id="create-error-Email"></span>
+            </div>
+            <div class="account-field">
+                <input class="form-control" name="Phone" type="tel" maxlength="30" placeholder="Phone number" aria-describedby="create-error-Phone" />
+                <span class="field-validation-error" data-valmsg-for="Phone" id="create-error-Phone"></span>
+            </div>
+            <div class="account-field">
+                <input class="form-control" name="Password" type="password" minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}" title="Use at least 8 characters with uppercase, lowercase, a number, and a special character." autocomplete="new-password" placeholder="Password (8+ characters)" required aria-describedby="create-error-Password" />
+                <span class="field-validation-error" data-valmsg-for="Password" id="create-error-Password"></span>
+            </div>
+            <div class="account-field">
+                <input class="form-control" name="ConfirmPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Confirm password" required aria-describedby="create-error-ConfirmPassword" />
+                <span class="field-validation-error" data-valmsg-for="ConfirmPassword" id="create-error-ConfirmPassword"></span>
+            </div>
+            <div class="account-field">
+                <select class="form-control" name="Role" required aria-describedby="create-error-Role">
+                    <option value="">Role</option>
+                    @foreach (var role in Model.AvailableRoles)
+                    {
+                        <option value="@role">@role</option>
+                    }
+                </select>
+                <span class="field-validation-error" data-valmsg-for="Role" id="create-error-Role"></span>
+            </div>
+            <div class="account-field">
+                <select class="form-control" name="DepartmentId" aria-describedby="create-error-DepartmentId">
+                    <option value="">Department (optional)</option>
+                    @foreach (var department in Model.Departments)
+                    {
+                        <option value="@department.DepartmentId">@department.DepartmentName</option>
+                    }
+                </select>
+                <span class="field-validation-error" data-valmsg-for="DepartmentId" id="create-error-DepartmentId"></span>
+            </div>
+            <div class="account-field">
+                <select class="form-control" name="Gender" required aria-describedby="create-error-Gender">
+                    <option value="">Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+                <span class="field-validation-error" data-valmsg-for="Gender" id="create-error-Gender"></span>
+            </div>
+            <div class="account-field">
+                <input class="form-control" name="DateOfBirth" type="date" aria-describedby="create-error-DateOfBirth" />
+                <span class="field-validation-error" data-valmsg-for="DateOfBirth" id="create-error-DateOfBirth"></span>
+            </div>
+            <div class="account-field">
+                <input class="form-control" name="Address" maxlength="500" placeholder="Address (optional)" aria-describedby="create-error-Address" />
+                <span class="field-validation-error" data-valmsg-for="Address" id="create-error-Address"></span>
+            </div>
+            <button class="btn btn-primary" type="submit">Create account</button>
+        </div>
+        <small>Use at least 8 characters with uppercase and lowercase letters, a number, and a symbol.</small>
+    }
+</section>
+<section class="panel">
+    <h2>@(User.IsInRole("Admin") ? "User and manager accounts" : "User accounts")</h2>
+    <div class="table-responsive">
+        <table class="table app-table">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Full name</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.UserAccounts.Any())
+                {
+                    foreach (var account in Model.UserAccounts)
+                    {
+                        <tr>
+                            <td>
+                                @if (account.Employee != null && !String.IsNullOrWhiteSpace(account.Employee.AvatarPath))
+                                {
+                                    var imageUrl = account.Employee.AvatarPath.StartsWith("uploads/", StringComparison.Ordinal) ? Url.Action("EmployeeAvatar", "Home", new { id = account.Employee.EmployeeId }) : account.Employee.AvatarPath;
+                                    <img class="avatar" src="@imageUrl" alt="" />
+                                }
+                                @account.Username
+                                <br />
+                                <small>@account.Email</small>
+                            </td>
+                            <td>@(account.Employee == null ? "—" : account.Employee.FullName)</td>
+                            <td>@account.Role</td>
+                            <td>@(account.Employee == null || account.Employee.Department == null ? "—" : account.Employee.Department.DepartmentName)</td>
+                            <td>@(account.IsLocked ? "Locked" : (account.Employee != null && !account.Employee.IsActive ? "Inactive" : "Active"))</td>
+                            <td>
+                                <button class="btn btn-xs btn-default" type="button" data-toggle="collapse" data-target="#account-edit-@account.Id">Edit</button>
+                                @if ((account.Employee == null || account.Employee.IsActive) && (account.Employee == null || account.Employee.UserId != User.Identity.GetUserId()))
+                                {
+                                    using (Html.BeginForm("ToggleUserAccount", "Home", new { id = account.Id }, FormMethod.Post, new { style = "display:inline" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-xs btn-default" type="submit">@(account.IsLocked ? "Unlock" : "Lock")</button>
+                                    }
+                                }
+                                @if ((account.Employee == null || account.Employee.IsActive) && account.Id != User.Identity.GetUserId())
+                                {
+                                    using (Html.BeginForm("DeactivateUserAccount", "Home", new { id = account.Id }, FormMethod.Post, new { style = "display:inline" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-xs btn-danger" type="submit">Deactivate</button>
+                                    }
+                                }
+                                else if (account.Employee != null && !account.Employee.IsActive)
+                                {
+                                    using (Html.BeginForm("ReactivateUserAccount", "Home", new { id = account.Id }, FormMethod.Post, new { style = "display:inline" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-xs btn-default" type="submit">Reactivate</button>
+                                    }
+                                }
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    using (Html.BeginForm("DeleteUserAccount", "Home", new { id = account.Id }, FormMethod.Post, new { style = "display:inline" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-xs btn-danger" type="submit" onclick="return confirm(&#39;Delete this account?&#39;);">Delete account</button>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                        <tr id="account-edit-@account.Id" class="collapse">
+                            <td colspan="6">
+                                @using (Html.BeginForm("UpdateUserAccount", "Home", FormMethod.Post))
+                                {
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="Id" value="@account.Id" />
+                                    <div class="filter-bar">
+                                        <input class="form-control" name="Username" value="@account.Username" maxlength="50" required />
+                                        <input class="form-control" name="Email" type="email" value="@account.Email" maxlength="256" required />
+                                        <input class="form-control" name="Phone" value="@account.Phone" maxlength="30" />
+                                        <select class="form-control" name="Role" required>
+                                            @foreach (var role in Model.AvailableRoles)
+                                            {
+                                                <option value="@role" @(account.Role.Split(',').Select(value => value.Trim()).Contains(role) ? "selected" : "")>@role</option>
+                                            }
+                                        </select>
+                                        <button class="btn btn-primary" type="submit">Save</button>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="empty-state">No accounts found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+@if (User.IsInRole("Admin"))
+{
+    <section class="panel">
+        <h2>Add employee</h2>
+        @if (Model.Departments.Any() && Model.IdentityUsers.Any(u => !Model.Employees.Any(e => e.UserId == u.Id)))
+        {
+            using (Html.BeginForm("SaveEmployee", "Home", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                <div class="filter-bar">
+                    <select class="form-control" name="userId" required>
+                        <option value="">Select an identity account</option>
+                        @foreach (var account in Model.IdentityUsers.Where(u => !Model.Employees.Any(e => e.UserId == u.Id)))
+                        {
+                            <option value="@account.Id">@account.Email</option>
+                        }
+                    </select>
+                    <input class="form-control" name="fullName" maxlength="100" placeholder="Full name" required />
+                    <input class="form-control" name="email" type="email" maxlength="150" placeholder="Email address" required />
+                    <select class="form-control" name="departmentId" required>
+                        <option value="">Select a department</option>
+                        @foreach (var department in Model.Departments)
+                        {
+                            <option value="@department.DepartmentId">@department.DepartmentName</option>
+                        }
+                    </select>
+                    <input class="form-control" name="position" maxlength="100" placeholder="Position" />
+                    <input class="form-control" name="phoneNumber" maxlength="30" placeholder="Phone number" />
+                    <input class="form-control" name="hireDate" type="date" required />
+                    <button class="btn btn-primary" type="submit">Add employee</button>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="empty-state">An unassigned identity account and a department are required to add an employee.</p>
+        }
+    </section>
+    <section class="panel">
+        <div class="filter-bar">
+            <input id="employeeSearch" class="form-control" placeholder="⌕ Search by name or email" />
+        </div>
+        <div class="table-responsive">
+            <table class="table app-table">
+                <thead>
+                    <tr>
+                        <th>Full name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Position</th>
+                        <th>Hire date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Employees.Any())
+                    {
+                        foreach (var employee in Model.Employees)
+                        {
+                            <tr>
+                                <td>@employee.FullName</td>
+                                <td>@employee.Email</td>
+                                <td>@(employee.Department == null ? "—" : employee.Department.DepartmentName)</td>
+                                <td>@employee.Position</td>
+                                <td>@employee.HireDate.ToString("yyyy/MM/dd")</td>
+                                <td>@(employee.IsActive ? "Active" : "Inactive")</td>
+                                <td>
+                                    <button class="btn btn-xs btn-default" type="button" data-toggle="collapse" data-target="#employee-edit-@employee.EmployeeId">Edit</button>
+                                    @if (employee.IsActive)
+                                    {
+                                        using (Html.BeginForm("DeactivateEmployee", "Home", new { id = employee.EmployeeId }, FormMethod.Post, new { style = "display:inline" }))
+                                        {
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-xs btn-default" type="submit">Deactivate</button>
+                                        }
+                                    }
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        using (Html.BeginForm("DeleteEmployee", "Home", new { id = employee.EmployeeId }, FormMethod.Post, new { style = "display:inline" }))
+                                        {
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-xs btn-danger" type="submit" onclick="return confirm('Delete this employee and account?');">Delete</button>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr id="employee-edit-@employee.EmployeeId" class="collapse">
+                                <td colspan="7">
+                                    @using (Html.BeginForm("SaveEmployee", "Home", FormMethod.Post))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@employee.EmployeeId" />
+                                        <div class="filter-bar">
+                                            <input class="form-control" name="fullName" value="@employee.FullName" maxlength="100" required />
+                                            <input class="form-control" value="@employee.Email" readonly />
+                                            <select class="form-control" name="departmentId" required>
+                                                @foreach (var department in Model.Departments)
+                                                {
+                                                    <option value="@department.DepartmentId" @(employee.DepartmentId == department.DepartmentId ? "selected" : "")>@department.DepartmentName</option>
+                                                }
+                                            </select>
+                                            <input class="form-control" name="position" value="@employee.Position" maxlength="100" />
+                                            <input class="form-control" name="phoneNumber" value="@employee.PhoneNumber" maxlength="30" />
+                                            <input class="form-control" name="hireDate" type="date" value="@employee.HireDate.ToString("yyyy-MM-dd")" required />
+                                            <button class="btn btn-primary" type="submit">Save</button>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="empty-state">No employee data.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}

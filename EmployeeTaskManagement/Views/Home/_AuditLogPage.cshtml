@@ -1,0 +1,45 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+<section class="panel">
+    <div class="panel-heading">
+        <h2>Account activity</h2>
+        <span>Latest @Model.ActivityLogs.Count entries · read only</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table app-table">
+            <thead>
+                <tr>
+                    <th>Time (UTC)</th>
+                    <th>Account</th>
+                    <th>Controller</th>
+                    <th>Action</th>
+                    <th>Method</th>
+                    <th>Result</th>
+                    <th>IP address</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ActivityLogs.Any())
+                {
+                    foreach (var log in Model.ActivityLogs)
+                    {
+                        <tr>
+                            <td>@log.CreatedAt.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                            <td>@log.UserName</td>
+                            <td>@log.Controller</td>
+                            <td>@log.Action</td>
+                            <td>@log.HttpMethod</td>
+                            <td>@log.Result</td>
+                            <td>@log.IpAddress</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="empty-state">No activity has been recorded yet.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

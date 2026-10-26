@@ -1,0 +1,40 @@
+@model IEnumerable<EmployeeTaskManagement.Models.Project>
+
+<div class="table-responsive">
+    <table class="table app-table">
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Manager</th>
+                <th>Tasks</th>
+                <th>Completed</th>
+                <th>Average progress</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Any())
+            {
+                foreach (var project in Model)
+                {
+                    <tr>
+                        <td>@project.Name</td>
+                        <td>@project.ProjectManager.FullName</td>
+                        <td>@project.Tasks.Count</td>
+                        <td>
+                            @project.Tasks.Count(task => task.Status == "Completed")
+                        </td>
+                        <td>
+                            @(project.Tasks.Any() ? (int)Math.Round(project.Tasks.Average(task => (double)task.Progress)) : 0)%
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5" class="empty-state">No projects yet.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

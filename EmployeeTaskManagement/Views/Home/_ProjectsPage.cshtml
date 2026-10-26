@@ -1,0 +1,91 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+<section class="panel project-create-panel">
+    <div class="panel-heading">
+        <div>
+            <h2>Create project</h2>
+            <small>Choose an active User or Manager as project manager.</small>
+        </div>
+    </div>
+    @using (Html.BeginForm("SaveProject", "Home", FormMethod.Post, new { @class = "project-create-form" }))
+    {
+        @Html.AntiForgeryToken()
+        <input class="form-control" name="name" maxlength="150" placeholder="Project name" required />
+        <input class="form-control" name="description" maxlength="2000" placeholder="Description (optional)" />
+        <select class="form-control" name="projectManagerEmployeeId" required>
+            <option value="">Project manager</option>
+            @foreach (var employee in Model.Employees)
+            {
+                <option value="@employee.EmployeeId">@employee.FullName</option>
+            }
+        </select>
+        <label>
+            Project deadline
+            <input class="form-control" name="dueDate" type="date" required />
+        </label>
+        <button class="btn btn-primary" type="submit">Create project</button>
+    }
+    <p class="project-create-help">The project manager can add members after an administrator starts the project.</p>
+</section>
+@if (Model.Projects.Any())
+{
+    foreach (var project in Model.Projects)
+    {
+        <section class="panel project-workspace">
+            @Html.Partial("_ProjectSummary", project)
+            <div class="project-admin-actions">
+                @using (Html.BeginForm("UpdateProjectDeadline", "Home", FormMethod.Post, new { @class = "project-deadline-form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@project.ProjectId" />
+                    <label>
+                        Change deadline
+                        <input class="form-control" name="dueDate" type="date" value="@(project.DueDate.HasValue ? project.DueDate.Value.ToString("yyyy-MM-dd") : "")" required />
+                    </label>
+                    <button class="btn btn-default" type="submit">Save deadline</button>
+                }
+                @using (Html.BeginForm("SetProjectStatus", "Home", FormMethod.Post, new { @class = "project-status-form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@project.ProjectId" />
+                    if (project.Status == "Not Started")
+                    {
+                        <button class="btn btn-primary" name="action" value="start" type="submit">Start project</button>
+                    }
+                    else if (project.Status == "Ready" || project.Status == "In Progress")
+                    {
+                        <button class="btn btn-default" name="action" value="pause" type="submit">Pause project</button>
+                    }
+                    else if (project.Status == "Paused")
+                    {
+                        <button class="btn btn-primary" name="action" value="resume" type="submit">Resume project</button>
+                    }
+                }
+                @if (project.Status == "Ready")
+                {
+                    using (Html.BeginForm("StartProjectExecution", "Home", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@project.ProjectId" />
+                        <button class="btn btn-primary" type="submit">Start task execution</button>
+                    }
+                }
+                @if (User.IsInRole("Admin"))
+                {
+                    using (Html.BeginForm("DeleteProject", "Home", new { id = project.ProjectId }, FormMethod.Post, new { style = "display:inline" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-danger" type="submit" onclick="return confirm('Delete this project and its associated records?');">Delete project</button>
+                    }
+                }
+            </div>
+            @Html.Partial("_ProjectTaskList", project)
+            @Html.Partial("_ProjectComments", project, new ViewDataDictionary(ViewData) { { "CommentPlaceholder", "Comment on project" } })
+        </section>
+    }
+}
+else
+{
+    <section class="panel">
+        <p class="empty-state">No projects yet.</p>
+    </section>
+}

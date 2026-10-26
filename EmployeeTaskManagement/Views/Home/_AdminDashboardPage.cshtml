@@ -1,0 +1,105 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@{
+    var page = Model.Page;
+    var completedShare = Model.TotalTasks == 0 ? 0 : (int)Math.Round((double)Model.CompletedTasks * 100 / Model.TotalTasks);
+}
+@if (page == "Admin Dashboard")
+{
+    <div class="row stat-row">
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <span class="stat-icon blue">♟</span>
+                <div>
+                    <div class="stat-label">Total employees</div>
+                    <strong>@Model.TotalEmployees</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <span class="stat-icon green">✓</span>
+                <div>
+                    <div class="stat-label">All tasks</div>
+                    <strong>@Model.TotalTasks</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <span class="stat-icon purple">◷</span>
+                <div>
+                    <div class="stat-label">In-progress tasks</div>
+                    <strong>@Model.InProgressTasks</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <span class="stat-icon green">✓</span>
+                <div>
+                    <div class="stat-label">Completed tasks</div>
+                    <strong>@Model.CompletedTasks</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <section class="panel">
+                <div class="panel-heading">
+                    <h2>Task progress</h2>
+                </div>
+                <div class="chart-summary">
+                    <div class="donut" style="background:conic-gradient(#20ad74 0 @completedShare%,#2788df @completedShare% 100%)">
+                        <span>
+                            @Model.TotalTasks
+                            <small>Tasks</small>
+                        </span>
+                    </div>
+                    <div class="chart-legend">
+                        <p>
+                            Completed
+                            <b>@Model.CompletedTasks</b>
+                        </p>
+                        <p>
+                            In progress
+                            <b>@Model.InProgressTasks</b>
+                        </p>
+                        <p>
+                            Not started
+                            <b>@Model.NotStartedTasks</b>
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="col-md-6">
+            <section class="panel">
+                <div class="panel-heading">
+                    <h2>Recent activity</h2>
+                </div>
+                @if (Model.Tasks.Any())
+                {
+                    foreach (var task in Model.Tasks.Take(5))
+                    {
+                        <div class="notice">
+                            <b>@task.Title — @task.Status</b>
+                            <small>@task.UpdatedAt.ToString("yyyy/MM/dd HH:mm")</small>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="empty-state">No recent tasks.</p>
+                }
+            </section>
+        </div>
+    </div>
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Project progress</h2>
+            <a href="@Url.Action("Projects", "Home")">Project Management</a>
+        </div>
+        @Html.Partial("_ProjectProgressTable", Model.Projects)
+    </section>
+}

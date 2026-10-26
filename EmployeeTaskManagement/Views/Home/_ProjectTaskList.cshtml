@@ -1,0 +1,50 @@
+@model EmployeeTaskManagement.Models.Project
+<div class="project-task-list">
+    <div class="section-subheading">
+        <h3>Project tasks</h3>
+        <span>@Model.Tasks.Count</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table app-table">
+            <thead>
+                <tr>
+                    <th>Tasks</th>
+                    <th>Assignee</th>
+                    <th>Status</th>
+                    <th>Deadline</th>
+                    <th>Progress</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Tasks.Any())
+                {
+                    foreach (var task in Model.Tasks.OrderBy(item => item.DueDate))
+                    {
+                        <tr>
+                            <td>
+                                <a href="@Url.Action("TaskDetails", "Task", new { id = task.TaskId })">@task.Title</a>
+                            </td>
+                            <td>@(task.AssignedEmployee == null ? "—" : task.AssignedEmployee.FullName)</td>
+                            <td>@task.Status</td>
+                            <td>@(task.DueDate.HasValue ? task.DueDate.Value.ToString("yyyy/MM/dd") : "—")</td>
+                            <td>
+                                <div class="task-progress-cell">
+                                    <div class="progress-track" role="progressbar" aria-label="@task.Title progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@task.Progress">
+                                        <span style="width:@(task.Progress)%"></span>
+                                    </div>
+                                    <small>@task.Progress%</small>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="empty-state">This project has no tasks yet.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

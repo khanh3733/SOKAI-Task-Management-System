@@ -1,0 +1,15 @@
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">KOSAIDO WORKSPACE</div>
+        <h1>@ViewBag.Title</h1>
+        <p>Review work status and details.</p>
+    </div>
+</div>
+@if (TempData["WorkspaceError"] != null)
+{
+    <div class="alert alert-danger" role="alert">@TempData["WorkspaceError"]</div>
+}
+@if (TempData["WorkspaceSuccess"] != null)
+{
+    <div class="alert alert-success" role="status">@TempData["WorkspaceSuccess"]</div>
+}

@@ -1,0 +1,44 @@
+@model EmployeeTaskManagement.Models.Project
+@{
+    var progress = Model.Tasks.Any()
+        ? (int)Math.Round(Model.Tasks.Average(task => (double)task.Progress))
+        : 0;
+}
+<div class="project-workspace-header">
+    <div>
+        <span class="eyebrow">PROJECT</span>
+        <h2>@Model.Name</h2>
+        @if (!String.IsNullOrWhiteSpace(Model.Description))
+        {
+            <p class="project-description">@Model.Description</p>
+        }
+    </div>
+    <span class="project-status-badge">@Model.Status</span>
+</div>
+<div class="project-meta-row">
+    <span>
+        <small>Manager</small>
+        <b>@Model.ProjectManager.FullName</b>
+    </span>
+    <span>
+        <small>Deadline</small>
+        <b>@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("yyyy/MM/dd") : "Not set")</b>
+    </span>
+    <span>
+        <small>Members</small>
+        <b>@Model.Members.Count</b>
+    </span>
+    <span>
+        <small>Tasks</small>
+        <b>@Model.Tasks.Count</b>
+    </span>
+</div>
+<div class="project-progress-summary">
+    <div class="project-progress-label">
+        <span>Project progress</span>
+        <strong>@progress%</strong>
+    </div>
+    <div class="progress-track" role="progressbar" aria-label="Project progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@progress">
+        <span style="width:@(progress)%"></span>
+    </div>
+</div>

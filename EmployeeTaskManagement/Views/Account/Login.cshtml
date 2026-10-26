@@ -1,0 +1,25 @@
+@using EmployeeTaskManagement.Models
+@model LoginViewModel
+@{ ViewBag.Title = "Sign in"; ViewBag.IsLogin = true; }
+<div class="login-page">
+    <div class="login-branding"><div class="login-logo"><span>❮</span> KOSAIDO</div><h1>Employee and Task Management</h1><p>Better teams. Better futures.</p><div class="skyline"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="login-card">
+        <h2>Sign in</h2><p class="login-caption">Enter your account details</p>
+        @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { role = "form" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+            <div class="form-group">
+                @Html.LabelFor(m => m.Email, "User ID")
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "Enter your user ID", autocomplete = "username" })
+                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+            </div>
+            <div class="form-group">
+                @Html.LabelFor(m => m.Password, "Password")
+                @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Enter your password", autocomplete = "current-password" })
+                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+            </div>
+            <button type="submit" class="btn btn-primary btn-block login-submit">Sign in</button>
+            <div class="login-links">@Html.ActionLink("Forgot password?", "ForgotPassword")</div>}</div>
+    <div class="login-footer">© @DateTime.Now.Year KOSAIDO</div></div>
+@section Scripts { @Scripts.Render("~/bundles/jqueryval") }

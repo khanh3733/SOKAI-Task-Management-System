@@ -1,0 +1,39 @@
+# Visual Studio
+.vs/
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+*.user
+*.suo
+*.userosscache
+
+# NuGet packages
+packages/
+*.nupkg
+
+# Local configuration and secrets
+.env
+.env.*
+**/appsettings.Development.json
+**/Web.Debug.config
+**/Web.Release.config
+*.pfx
+*.publishsettings
+
+# Local databases and backups
+*.mdf
+*.ldf
+*.bak
+
+# Logs and temporary files
+*.log
+*.tmp
+*.cache
+
+# Generated demo files
+demo-uploads/
+
+# Runtime uploaded attachments
+EmployeeTaskManagement/App_Data/JobAttachments/
+EmployeeTaskManagement/App_Data/ProjectReportAttachments/

@@ -1,0 +1,100 @@
+@{
+    var isLogin = ViewBag.IsLogin == true;
+    var page = ViewBag.Page as string ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"] as string ?? "";
+    var isAdmin = User.IsInRole("Admin");
+    var currentRoleLabel = "Administrator";
+    var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "";
+}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>@ViewBag.Title - KOSAIDO</title>
+        @Styles.Render("~/Content/css")
+        @RenderSection("styles", required: false)
+    </head>
+    <body class="@(isLogin ? "login-shell" : (isAdmin ? "admin-shell" : "user-shell"))">
+        @if (!isLogin)
+        {
+            <header class="topbar">
+                <div class="brand">
+                    <span class="brand-mark">❮</span>
+                    KOSAIDO
+                </div>
+                @if (isAdmin)
+                {
+                    <button class="mobile-toggle" type="button" onclick="document.body.classList.toggle('menu-open')">☰</button>
+                    <div class="top-actions">
+                        <span class="glyphicon glyphicon-bell" aria-hidden="true"></span>
+                        <span class="avatar">@currentRoleLabel.Substring(0, 1)</span>
+                        <span>@currentRoleLabel ▾</span>
+                    </div>
+                }
+                else
+                {
+                    <nav class="top-nav">
+                        <a class="@(currentAction == "Index" ? "active" : "")" href="@Url.Action("Index", "Home")">Dashboard</a>
+                        <a class="@(currentAction == "Tasks" ? "active" : "")" href="@Url.Action("Tasks", "Home")">My Tasks</a>
+                        @if (User.IsInRole("Manager"))
+                        {
+                            <a class="@(currentAction == "ManagerProgress" ? "active" : "")" href="@Url.Action("ManagerProgress", "Home")">Project progress</a>
+                        }
+                        <a class="@(currentAction == "Profile" ? "active" : "")" href="@Url.Action("Profile", "Home")">Profile</a>
+                    </nav>
+                    <div class="top-actions">
+                        <a href="@Url.Action("Notifications", "Home")" aria-label="Notifications">
+                            <span class="glyphicon glyphicon-bell" aria-hidden="true"></span>
+                        </a>
+                        <span class="avatar">@(String.IsNullOrEmpty(currentUserName) ? "•" : currentUserName.Substring(0, 1))</span>
+                        <span>@currentUserName ▾</span>
+                        @using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { @class = "logout-form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button class="logout" type="submit">Log out</button>
+                        }
+                    </div>
+                }
+            </header>
+            if (isAdmin)
+            {
+                <aside class="sidebar">
+                    <div class="sidebar-links">
+                        <a class="@(page == "Admin Dashboard" ? "active" : "")" href="@Url.Action("Admin", "Home")">⌂ Dashboard</a>
+                        <a class="@(page == "Employees" ? "active" : "")" href="@Url.Action("Employees", "Home")">♟ @(User.IsInRole("Admin") ? "Employee Management" : "User Management")</a>
+                        <a class="@(page == "My Tasks" ? "active" : "")" href="@Url.Action("Tasks", "Home")">▣ My Tasks</a>
+                        <a class="@(page == "Task Management" ? "active" : "")" href="@Url.Action("AdminTasks", "Home")">▣ Task Management</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a class="@(page == "Departments" ? "active" : "")" href="@Url.Action("Departments", "Home")">▤ Department Management</a>
+                        }
+                        <a class="@(page == "Projects" ? "active" : "")" href="@Url.Action("Projects", "Home")">▣ Project Management</a>
+                        <a class="@(page == "Reports" ? "active" : "")" href="@Url.Action("Reports", "Home")">▥ Reports & Analytics</a>
+                        <a class="@(page == "Audit Logs" ? "active" : "")" href="@Url.Action("AuditLog", "Home")">▧ Audit Log</a>
+                        <a class="@(page == "Profile" ? "active" : "")" href="@Url.Action("Profile", "Home")">♙ Profile</a>
+                    </div>
+                    @using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { @class = "logout-form" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button class="logout" type="submit">⇥ Log out</button>
+                    }
+                </aside>
+            }
+        }
+        @if (isLogin)
+        {
+            @RenderBody()
+        }
+        else
+        {
+            <main class="main-content">
+                @RenderBody()
+                <footer class="app-footer">© @DateTime.Now.Year KOSAIDO Employee and Task Management</footer>
+            </main>
+        }
+        @Scripts.Render("~/bundles/jquery")
+        @Scripts.Render("~/bundles/bootstrap")
+        @RenderSection("scripts", required: false)
+    </body>
+</html>

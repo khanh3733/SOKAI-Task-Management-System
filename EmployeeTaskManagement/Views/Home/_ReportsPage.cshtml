@@ -1,0 +1,97 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@{
+    var page = Model.Page;
+}
+@if (page == "Reports")
+{
+    <div class="row stat-row">
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">All tasks</div>
+                    <strong>@Model.TotalTasks</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">Completed</div>
+                    <strong>@Model.CompletedTasks</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">Overdue</div>
+                    <strong>@Model.OverdueTasks</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="stat-card">
+                <div>
+                    <div class="stat-label">Average progress</div>
+                    <strong>@Model.AverageProgress%</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Task statistics by department</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table app-table">
+                <thead>
+                    <tr>
+                        <th>Department</th>
+                        <th>Task count</th>
+                        <th>Completed</th>
+                        <th>In progress</th>
+                        <th>Not started</th>
+                        <th>Average progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Departments.Any())
+                    {
+                        foreach (var department in Model.Departments)
+                        {
+                            var deptTasks = Model.Tasks.Where(t => t.AssignedEmployee != null && t.AssignedEmployee.DepartmentId == department.DepartmentId).ToList();
+                            <tr>
+                                <td>@department.DepartmentName</td>
+                                <td>@deptTasks.Count</td>
+                                <td>
+                                    @deptTasks.Count(t => t.Status == "Completed")
+                                </td>
+                                <td>
+                                    @deptTasks.Count(t => t.Status == "In Progress")
+                                </td>
+                                <td>
+                                    @deptTasks.Count(t => t.Status == "Not Started")
+                                </td>
+                                <td>
+                                    @(deptTasks.Any() ? (int)Math.Round(deptTasks.Average(t => (double)t.Progress)) : 0)%
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="empty-state">No department data.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Project progress</h2>
+        </div>
+        @Html.Partial("_ProjectProgressTable", Model.Projects)
+    </section>
+}

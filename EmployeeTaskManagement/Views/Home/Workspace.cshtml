@@ -1,0 +1,7 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@Html.Partial("_WorkspaceHeader")
+@Html.Partial((string)ViewBag.ContentView, Model)
+@section scripts
+{
+    <script src="@Url.Content("~/Scripts/home-workspace.js")"></script>
+}

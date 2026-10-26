@@ -1,0 +1,327 @@
+@model EmployeeTaskManagement.Models.Task
+@using Microsoft.AspNet.Identity
+@{
+    ViewBag.Title = Model.Title;
+}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">KOSAIDO WORKSPACE</div>
+        <h1>@Model.Title</h1>
+    </div>
+    <a class="btn btn-default" href="@(User.IsInRole("Admin") ? Url.Action("AdminTasks", "Home") : Url.Action("Tasks", "Home"))">Back to list</a>
+    @if (User.IsInRole("Admin"))
+    {
+        using (Html.BeginForm("DeleteTask", "Task", new { id = Model.TaskId }, FormMethod.Post, new { style = "display:inline" }))
+        {
+            @Html.AntiForgeryToken()
+            <button class="btn btn-danger" type="submit" onclick="return confirm(&#39;Delete this task and its task records?&#39;);">Delete task</button>
+        }
+    }
+</div>
+@if (TempData["WorkspaceError"] != null)
+{
+    <div class="alert alert-danger" role="alert">@TempData["WorkspaceError"]</div>
+}
+@if (TempData["WorkspaceSuccess"] != null)
+{
+    <div class="alert alert-success" role="status">@TempData["WorkspaceSuccess"]</div>
+}
+<section class="panel task-detail-panel">
+    <div class="task-detail-heading">
+        <div>
+            <span class="eyebrow">TASK OVERVIEW</span>
+            <h2>Task details</h2>
+        </div>
+        <span class="task-status-pill">@Model.Status</span>
+    </div>
+    <dl class="profile-list task-detail-grid">
+        @if (Model.Project != null)
+        {
+            <dt>Project</dt>
+            <dd>@Model.Project.Name</dd>
+        }
+        <dt>Description</dt>
+        <dd>@(String.IsNullOrWhiteSpace(Model.Description) ? "—" : Model.Description)</dd>
+        <dt>Status</dt>
+        <dd>@Model.Status</dd>
+        <dt>Assignee</dt>
+        <dd>@Model.AssignedEmployee.FullName</dd>
+        <dt>Created by</dt>
+        <dd>@Model.CreatedByEmployee.FullName</dd>
+        <dt>Department</dt>
+        <dd>@(Model.AssignedEmployee.Department == null ? "—" : Model.AssignedEmployee.Department.DepartmentName)</dd>
+        <dt>Priority</dt>
+        <dd>@Model.Priority</dd>
+        <dt>Start date</dt>
+        <dd>@(Model.StartDate.HasValue ? Model.StartDate.Value.ToString("yyyy/MM/dd") : "—")</dd>
+        <dt>Due date</dt>
+        <dd>@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("yyyy/MM/dd") : "—")</dd>
+        <dt>Progress</dt>
+        <dd>@Model.Progress%</dd>
+    </dl>
+</section>
+@if (ViewBag.CanManageTask == true && (Model.Status == "Confirmed" || Model.Status == "In Progress" || Model.Status == "On Hold"))
+{
+    <section class="panel">
+        <h2>Pause task</h2>
+        @using (Html.BeginForm("SetTaskPaused", "Task", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.TaskId" />
+            <button class="btn btn-default" type="submit" name="paused" value="@(Model.Status == "On Hold" ? "false" : "true")">@(Model.Status == "On Hold" ? "Resume task" : "Pause task")</button>
+        }
+    </section>
+}
+@if ((ViewBag.IsAssignee == true) && Model.AssignedEmployee.UserId == User.Identity.GetUserId() && Model.Status != "Completed" && Model.Status != "Completed Pending Review" && Model.Status != "Cancelled")
+{
+    <section class="panel">
+        <h2>Request deadline extension</h2>
+        @if (!((IEnumerable<EmployeeTaskManagement.Models.TaskDeadlineRequest>)ViewBag.DeadlineRequests).Any(request => request.Status == "Pending"))
+        {
+            using (Html.BeginForm("RequestTaskDeadline", "Task", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.TaskId" />
+                <div class="filter-bar">
+                    <label>
+                        Requested due date
+                        <input class="form-control" name="requestedDueDate" type="date" required />
+                    </label>
+                    <input class="form-control" name="reason" maxlength="1000" placeholder="Reason for extension" required />
+                    <button class="btn btn-default" type="submit">Submit request</button>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="notice">Your deadline extension request is awaiting a decision.</p>
+        }
+    </section>
+}
+@if (ViewBag.DeadlineRequests != null && ((IEnumerable<EmployeeTaskManagement.Models.TaskDeadlineRequest>)ViewBag.DeadlineRequests).Any())
+{
+    <section class="panel">
+        <h2>Deadline extension requests</h2>
+        @foreach (var request in (IEnumerable<EmployeeTaskManagement.Models.TaskDeadlineRequest>)ViewBag.DeadlineRequests)
+        {
+            <div class="notice">
+                <b>@request.Status · @request.RequestedDueDate.ToString("yyyy/MM/dd")</b>
+                <small>@request.RequestedBy.UserName · @request.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</small>
+                <p>@request.Reason</p>
+                @if (!String.IsNullOrWhiteSpace(request.DecisionNote))
+                {
+                    <p>@request.DecisionNote</p>
+                }
+                @if (request.Status == "Pending" && ViewBag.CanManageTask == true)
+                {
+                    using (Html.BeginForm("DecideTaskDeadline", "Task", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.TaskId" />
+                        <input type="hidden" name="requestId" value="@request.TaskDeadlineRequestId" />
+                        <input class="form-control" name="decisionNote" maxlength="1000" placeholder="Decision note (optional)" />
+                        <button class="btn btn-primary" type="submit" name="approve" value="true">Approve extension</button>
+                        <button class="btn btn-default" type="submit" name="approve" value="false">Decline extension</button>
+                    }
+                }
+            </div>
+        }
+    </section>
+}
+@if (Model.Status == "Pending" && (ViewBag.IsAssignee == true))
+{
+    <section class="panel">
+        <h2>Review task</h2>
+        @using (Html.BeginForm("AcceptJob", "Task", new { id = Model.TaskId }, FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <button class="btn btn-primary" type="submit">Accept task</button>
+        }
+    </section>
+}
+@if ((Model.Status == "Confirmed" || Model.Status == "In Progress" || Model.Status == "On Hold") && (ViewBag.IsAssignee == true))
+{
+    <section class="panel">
+        <h2>Report progress</h2>
+        @using (Html.BeginForm("SubmitJobProgress", "Task", FormMethod.Post, new { enctype = "multipart/form-data" }))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.TaskId" />
+            <div class="filter-bar">
+                <select class="form-control" name="progressStatus" required>
+                    <option value="not_started">Not started</option>
+                    <option value="in_progress" selected>In progress</option>
+                    <option value="on_hold">On hold</option>
+                    <option value="completed">Report completion</option>
+                </select>
+                <input class="form-control" type="number" name="percent" min="0" max="100" value="@(Model.Progress == 0 ? 1 : Model.Progress)" required />
+                @if (Model.Project != null)
+                {
+                    <select class="form-control" name="recipientEmployeeId" required>
+                        <option value="">Send report to</option>
+                        <option value="@Model.Project.ProjectManagerEmployeeId">Project manager — @Model.Project.ProjectManager.FullName</option>
+                        @foreach (var member in Model.Project.Members.Where(member => member.EmployeeId != Model.Project.ProjectManagerEmployeeId))
+                        {
+                            <option value="@member.EmployeeId">@member.Employee.FullName</option>
+                        }
+                    </select>
+                }
+                <textarea class="form-control" name="note" maxlength="2000" placeholder="Explain incomplete work or share a project suggestion"></textarea>
+                <input class="form-control" type="file" name="attachments" multiple accept=".doc,.docx,.xls,.xlsx,.pdf" />
+                <button class="btn btn-primary" type="submit">Submit progress</button>
+            </div>
+            <small>A note is required when a task is incomplete. DOC, DOCX, XLS, XLSX, PDF · 10 MB per file</small>
+        }
+    </section>
+}
+@if ((Model.Status == "Not Started" || Model.Status == "Blocked") && (ViewBag.IsAssignee == true))
+{
+    <section class="panel">
+        <h2>Update progress</h2>
+        @using (Html.BeginForm("UpdateTask", "Task", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.TaskId" />
+            <div class="filter-bar">
+                <select class="form-control" name="status">
+                    <option value="In Progress">In progress</option>
+                    <option value="Blocked">On hold</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+                <input class="form-control" type="number" name="progress" min="0" max="100" value="@Model.Progress" required />
+                <button class="btn btn-primary" type="submit">Update</button>
+            </div>
+        }
+    </section>
+}
+@if (Model.Status == "Completed Pending Review" && ViewBag.CanReviewJob == true)
+{
+    <section class="panel">
+        <h2>Review completion</h2>
+        @using (Html.BeginForm("ReviewJob", "Task", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.TaskId" />
+            <textarea class="form-control" name="note" maxlength="1000" placeholder="Review note (optional)"></textarea>
+            <button class="btn btn-primary" type="submit" name="approve" value="true">Approve and complete</button>
+            <button class="btn btn-default" type="submit" name="approve" value="false">Return for rework</button>
+        }
+    </section>
+}
+<section class="panel">
+    <h2>Attachments</h2>
+    @if (Model.Attachments.Any())
+    {
+        foreach (var file in Model.Attachments.OrderByDescending(item => item.UploadedAt))
+        {
+            <div class="notice">
+                <b>@file.FileName</b>
+                <small>@((file.SizeBytes / 1024.0 / 1024.0).ToString("0.00")) MB · @file.UploadedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</small>
+                <a href="@Url.Action("DownloadJobAttachment", "Task", new { id = file.JobAttachmentId })">View / Download</a>
+            </div>
+        }
+    }
+    else
+    {
+        <p class="empty-state">No attachments.</p>
+    }
+</section>
+<section class="panel">
+    <h2>Progress reports</h2>
+    @if (Model.ProgressLogs.Any())
+    {
+        foreach (var log in Model.ProgressLogs.OrderByDescending(item => item.CreatedAt))
+        {
+            <div class="notice">
+                <b>@log.Status · @log.Percent%</b>
+                <small>@(log.User == null ? log.UserId : log.User.UserName) · @log.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</small>
+                @if (!String.IsNullOrWhiteSpace(log.Note))
+                {
+                    <p>@log.Note</p>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <p class="empty-state">No progress reports.</p>
+    }
+</section>
+@if (ViewBag.ProjectProgressReports != null && ((IEnumerable<EmployeeTaskManagement.Models.ProjectProgressReport>)ViewBag.ProjectProgressReports).Any())
+{
+    <section class="panel">
+        <h2>Recipients and report comments</h2>
+        @foreach (var report in (IEnumerable<EmployeeTaskManagement.Models.ProjectProgressReport>)ViewBag.ProjectProgressReports)
+        {
+            <div class="notice">
+                <b>@report.Reporter.UserName → @report.Recipient.FullName · @(report.TaskCompleted == true ? "Completed" : "Incomplete")</b>
+                <small>@report.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</small>
+                @if (!String.IsNullOrWhiteSpace(report.Note))
+                {
+                    <p>@report.Note</p>
+                }
+                @foreach (var file in report.Attachments)
+                {
+                    <a href="@Url.Action("DownloadProjectReportAttachment", "Home", new { id = file.ProjectReportAttachmentId })">@file.FileName · Download</a>
+                    <br />
+                }
+            </div>
+        }
+    </section>
+}
+<section class="panel">
+    <h2>Comments</h2>
+    @if (Model.Comments.Any())
+    {
+        foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
+        {
+            <div class="notice">
+                <b>@comment.Employee.FullName</b>
+                <small>@comment.CreatedAt.ToString("yyyy/MM/dd HH:mm")</small>
+                <p>@comment.Comment</p>
+                @if (User.IsInRole("Admin"))
+                {
+                    using (Html.BeginForm("DeleteTaskComment", "Task", new { id = comment.TaskCommentId }, FormMethod.Post, new { style = "display:inline" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-xs btn-danger" type="submit" onclick="return confirm(&#39;Delete this comment?&#39;);">Delete comment</button>
+                    }
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <p class="empty-state">No comments yet.</p>
+    }
+    @if (ViewBag.CanCommentTask == true)
+    {
+        using (Html.BeginForm("AddTaskComment", "Task", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.TaskId" />
+            <div class="filter-bar">
+                <textarea class="form-control" name="comment" maxlength="2000" required placeholder="Write a comment"></textarea>
+                <button class="btn btn-primary" type="submit">Add comment</button>
+            </div>
+        }
+    }
+</section>
+<section class="panel">
+    <h2>Change history</h2>
+    @if (Model.Histories.Any())
+    {
+        foreach (var history in Model.Histories.OrderByDescending(h => h.CreatedAt))
+        {
+            <div class="notice">
+                <b>@history.Action</b>
+                <small>@history.Employee.FullName · @history.CreatedAt.ToString("yyyy/MM/dd HH:mm")</small>
+                <p>@history.Details</p>
+            </div>
+        }
+    }
+    else
+    {
+        <p class="empty-state">No change history.</p>
+    }
+</section>

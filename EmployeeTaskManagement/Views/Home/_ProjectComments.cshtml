@@ -1,0 +1,57 @@
+@model EmployeeTaskManagement.Models.Project
+<div class="project-comments">
+    <div class="section-subheading">
+        <h3>Project comments</h3>
+    </div>
+    @foreach (var comment in Model.Comments.Where(item => !item.ParentCommentId.HasValue).OrderBy(item => item.CreatedAt))
+    {
+        <article class="project-comment">
+            <div class="project-comment-author">
+                @(comment.Employee == null ? comment.Author.UserName : comment.Employee.FullName)
+                <time>@comment.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</time>
+            </div>
+            <p>@comment.Content</p>
+            @if (User.IsInRole("Admin"))
+            {
+                using (Html.BeginForm("DeleteProjectComment", "Home", new { id = comment.ProjectCommentId }, FormMethod.Post, new { @class = "inline-form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <button class="btn btn-xs btn-danger" type="submit" onclick="return confirm('Delete this comment?');">Delete comment</button>
+                }
+            }
+            @foreach (var reply in comment.Replies.OrderBy(item => item.CreatedAt))
+            {
+                <div class="project-comment-reply">
+                    <div class="project-comment-author">
+                        @(reply.Employee == null ? reply.Author.UserName : reply.Employee.FullName)
+                        <time>@reply.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</time>
+                    </div>
+                    <p>@reply.Content</p>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        using (Html.BeginForm("DeleteProjectComment", "Home", new { id = reply.ProjectCommentId }, FormMethod.Post, new { @class = "inline-form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-xs btn-danger" type="submit" onclick="return confirm('Delete this comment?');">Delete comment</button>
+                        }
+                    }
+                </div>
+            }
+            @using (Html.BeginForm("AddProjectComment", "Home", FormMethod.Post, new { @class = "project-reply-form" }))
+            {
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.ProjectId" />
+                <input type="hidden" name="parentCommentId" value="@comment.ProjectCommentId" />
+                <input class="form-control" name="content" maxlength="2000" placeholder="Write a reply" required />
+                <button class="btn btn-default" type="submit">Reply</button>
+            }
+        </article>
+    }
+    @using (Html.BeginForm("AddProjectComment", "Home", FormMethod.Post, new { @class = "project-comment-form" }))
+    {
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.ProjectId" />
+        <textarea class="form-control" name="content" maxlength="2000" placeholder="@(ViewData["CommentPlaceholder"])" required></textarea>
+        <button class="btn btn-primary" type="submit">Add comment</button>
+    }
+</div>

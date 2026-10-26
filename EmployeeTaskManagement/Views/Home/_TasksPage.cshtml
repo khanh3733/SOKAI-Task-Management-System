@@ -1,0 +1,317 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@{
+    var page = Model.Page;
+}
+@if (page == "My Tasks" || page == "Task Management")
+{
+    if (page == "Task Management")
+    {
+        <section class="panel">
+            <h2>Create task</h2>
+            @if (Model.Employees.Any())
+            {
+                using (Html.BeginForm("CreateTask", "Task", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    <div class="filter-bar">
+                        <input class="form-control" name="title" maxlength="200" placeholder="Task title" required />
+                        <input class="form-control" name="description" maxlength="2000" placeholder="Description" />
+                        <select class="form-control" name="projectId">
+                            <option value="">No project</option>
+                            @foreach (var project in Model.Projects)
+                            {
+                                <option value="@project.ProjectId">@project.Name</option>
+                            }
+                        </select>
+                        <select class="form-control" name="assignedEmployeeId" required>
+                            <option value="">Assignee</option>
+                            @foreach (var employee in Model.Employees)
+                            {
+                                <option value="@employee.EmployeeId">@employee.FullName</option>
+                            }
+                        </select>
+                        <select class="form-control" name="priority">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                        <input class="form-control" name="startDate" type="date" />
+                        <input class="form-control" name="dueDate" type="date" />
+                        <button class="btn btn-primary" type="submit">Create</button>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="empty-state">Add a department and employees before creating tasks.</p>
+            }
+        </section>
+    }
+    if (page == "My Tasks" && User.IsInRole("Manager") && Model.CurrentEmployee != null)
+    {
+        foreach (var project in Model.Projects.Where(item => item.ProjectManagerEmployeeId == Model.CurrentEmployee.EmployeeId))
+        {
+            var members = project.Members.Select(member => member.Employee)
+                .Where(member => Model.Employees.Any(eligible => eligible.EmployeeId == member.EmployeeId)).ToList();
+            <section class="panel project-workspace">
+                @Html.Partial("_ProjectSummary", project)
+                @if (project.Status == "Ready" || project.Status == "In Progress")
+                {
+                    <div class="project-action-area">
+                        <div class="project-action-copy">
+                            <h3>Manage project members</h3>
+                            <p>Add active employees to the project at any time while it is ready or in progress.</p>
+                        </div>
+                        @using (Html.BeginForm("AddProjectMembers", "Home", FormMethod.Post, new { @class = "project-member-form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@project.ProjectId" />
+                            <div class="project-member-options">
+                                @foreach (var employee in Model.Employees.Where(person => !members.Any(member => member.EmployeeId == person.EmployeeId) && person.EmployeeId != Model.CurrentEmployee.EmployeeId))
+                                {
+                                    <label class="project-member-option">
+                                        <input type="checkbox" name="employeeIds" value="@employee.EmployeeId" />
+                                        <span>@employee.FullName</span>
+                                    </label>
+                                }
+                            </div>
+                            <div class="project-action-buttons">
+                                <button class="btn btn-default" type="submit">Add selected members</button>
+                            </div>
+                        }
+                    </div>
+                }
+                @if (project.Status == "In Progress")
+                {
+                    <div class="project-action-area">
+                        <div class="project-action-copy">
+                            <h3>Assign task</h3>
+                            <p>Create tasks and assign them to project members.</p>
+                        </div>
+                        @using (Html.BeginForm("CreateTask", "Task", FormMethod.Post, new { @class = "project-task-form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="projectId" value="@project.ProjectId" />
+                            <input class="form-control" name="title" maxlength="200" placeholder="Task title" required />
+                            <input class="form-control" name="description" maxlength="2000" placeholder="Description (optional)" />
+                            <select class="form-control" name="assignedEmployeeId" required>
+                                <option value="">Select a project member</option>
+                                @foreach (var member in members)
+                                {
+                                    if (member.EmployeeId != Model.CurrentEmployee.EmployeeId)
+                                    {
+                                        <option value="@member.EmployeeId">@member.FullName</option>
+                                    }
+                                }
+                            </select>
+                            <select class="form-control" name="priority">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                            <label>
+                                Start date
+                                <input class="form-control" name="startDate" type="date" />
+                            </label>
+                            <label>
+                                Deadline
+                                <input class="form-control" name="dueDate" type="date" max="@(project.DueDate.HasValue ? project.DueDate.Value.ToString("yyyy-MM-dd") : "")" />
+                            </label>
+                            <button class="btn btn-primary" type="submit">Assign task</button>
+                        }
+                    </div>
+                }
+                else if (project.Status == "Paused")
+                {
+                    <div class="project-paused-message">
+                        <span aria-hidden="true">Ⅱ</span>
+                        <p>This project has been paused by an administrator.</p>
+                    </div>
+                }
+                @Html.Partial("_ProjectTaskList", project)
+                @Html.Partial("_ProjectComments", project, new ViewDataDictionary(ViewData) { { "CommentPlaceholder", "Write a project comment or suggestion" } })
+            </section>
+        }
+    }
+    <section class="panel">
+        <div class="task-toolbar">
+            <nav class="task-tabs" aria-label="Task status">
+                <a class="active" data-task-filter="all" href="#all">
+                    All
+                    <span>@Model.Tasks.Count</span>
+                </a>
+                <a data-task-filter="In Progress" href="#progress">
+                    In progress
+                    <span>
+                        @Model.Tasks.Count(t => t.Status == "In Progress")
+                    </span>
+                </a>
+                <a data-task-filter="Not Started" href="#todo">
+                    Not started
+                    <span>
+                        @Model.Tasks.Count(t => t.Status == "Not Started")
+                    </span>
+                </a>
+                <a data-task-filter="Completed" href="#done">
+                    Completed
+                    <span>
+                        @Model.Tasks.Count(t => t.Status == "Completed")
+                    </span>
+                </a>
+                <a data-task-filter="overdue" href="#overdue">
+                    Overdue
+                    <span>
+                        @Model.Tasks.Count(t => t.DueDate.HasValue && t.DueDate.Value.Date < DateTime.Today && t.Status != "Completed" && t.Status != "Cancelled")
+                    </span>
+                </a>
+            </nav>
+            <input id="taskSearch" class="form-control" placeholder="⌕ Search tasks..." />
+        </div>
+        <div class="table-responsive">
+            <table class="table app-table">
+                <thead>
+                    <tr>
+                        <th>Task title</th>
+                        <th>Assignee</th>
+                        <th>Department</th>
+                        <th>Priority</th>
+                        <th>Due date</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Tasks.Any())
+                    {
+                        foreach (var task in Model.Tasks)
+                        {
+                            var overdue = task.DueDate.HasValue && task.DueDate.Value.Date < DateTime.Today && task.Status != "Completed" && task.Status != "Cancelled";
+                            <tr data-status="@task.Status" data-overdue="@overdue.ToString().ToLowerInvariant()">
+                                <td>
+                                    <a href="@Url.Action("TaskDetails", "Task", new { id = task.TaskId })">@task.Title</a>
+                                </td>
+                                <td>@(task.AssignedEmployee == null ? "—" : task.AssignedEmployee.FullName)</td>
+                                <td>@(task.AssignedEmployee == null || task.AssignedEmployee.Department == null ? "—" : task.AssignedEmployee.Department.DepartmentName)</td>
+                                <td>@task.Priority</td>
+                                <td>@(task.DueDate.HasValue ? task.DueDate.Value.ToString("yyyy/MM/dd") : "—")</td>
+                                <td>@task.Status</td>
+                                <td>
+                                    <div class="task-progress-cell">
+                                        <div class="progress-track" role="progressbar" aria-label="@task.Title progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@task.Progress">
+                                            <span style="width:@task.Progress%"></span>
+                                        </div>
+                                        <small>@task.Progress%</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        using (Html.BeginForm("DeleteTask", "Task", new { id = task.TaskId }, FormMethod.Post))
+                                        {
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-xs btn-danger" type="submit" onclick="return confirm(&#39;Delete this task and its task records?&#39;);">Delete</button>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="empty-state">No tasks to display.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+    if (page == "My Tasks")
+    {
+        <section class="panel">
+            <div class="panel-heading">
+                <h2>Project progress reports</h2>
+            </div>
+            @foreach (var project in Model.Projects)
+            {
+                var recipients = project.Members.Select(member => member.Employee).Where(member => member.EmployeeId != project.ProjectManagerEmployeeId).ToList();
+                <div class="notice">
+                    <b>@project.Name</b>
+                    <small>
+                        Manager:  @project.ProjectManager.FullName · @project.Tasks.Count(task => task.Status == "Completed") / @project.Tasks.Count TasksCompleted · Progress @(project.Tasks.Any() ? (int)Math.Round(project.Tasks.Average(task => (double)task.Progress)) : 0)%
+                    </small>
+                    @using (Html.BeginForm("SubmitProjectReport", "Home", FormMethod.Post, new { enctype = "multipart/form-data", @class = "project-report-form" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="projectId" value="@project.ProjectId" />
+                        <div class="filter-bar">
+                            <select class="form-control report-task-select" name="taskId">
+                                <option value="">Project suggestion</option>
+                                @foreach (var task in Model.Tasks.Where(task => task.ProjectId == project.ProjectId))
+                                {
+                                    <option value="@task.TaskId">Tasks: @task.Title</option>
+                                }
+                            </select>
+                            <select class="form-control" name="recipientEmployeeId" required>
+                                <option value="">Recipient</option>
+                                <option value="@project.ProjectManagerEmployeeId">Project manager — @project.ProjectManager.FullName</option>
+                                @foreach (var recipient in recipients)
+                                {
+                                    <option value="@recipient.EmployeeId">@recipient.FullName</option>
+                                }
+                            </select>
+                            <select class="form-control report-complete-select" name="taskCompleted">
+                                <option value="">Task complete?</option>
+                                <option value="false">Incomplete</option>
+                                <option value="true">Completed</option>
+                            </select>
+                            <select class="form-control report-progress-status" name="progressStatus">
+                                <option value="in_progress">In progress</option>
+                                <option value="not_started">Not started</option>
+                                <option value="on_hold">On hold</option>
+                            </select>
+                            <input class="form-control report-percent" type="number" name="percent" min="0" max="99" value="1" />
+                            <textarea class="form-control report-note" name="note" maxlength="2000" placeholder="Explain incomplete work or share a project suggestion"></textarea>
+                            <input class="form-control" type="file" name="attachments" multiple accept=".doc,.docx,.xls,.xlsx,.pdf" />
+                            <button class="btn btn-primary" type="submit">Submit report</button>
+                        </div>
+                        <small>A note is required for incomplete task reports and project suggestions. DOC, DOCX, XLS, XLSX, PDF · 10 MB / file</small>
+                    }
+                </div>
+            }
+            @if (!Model.Projects.Any())
+            {
+                <p class="empty-state">You are not part of any projects.</p>
+            }
+        </section>
+        <section class="panel">
+            <div class="panel-heading">
+                <h2>Report and suggestion history</h2>
+            </div>
+            @if (Model.ProjectReports.Any())
+            {
+                foreach (var report in Model.ProjectReports)
+                {
+                    <div class="notice">
+                        <b>@report.Project.Name · @(report.ReportType == "TaskUpdate" ? (report.Task == null ? "Deleted task" : report.Task.Title) : "Project suggestion")</b>
+                        <small>@report.Reporter.UserName → @report.Recipient.FullName · @report.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm") · @(report.TaskCompleted == true ? "Completed" : report.TaskCompleted == false ? "Incomplete" : "Suggestion")</small>
+                        @if (!String.IsNullOrWhiteSpace(report.Note))
+                        {
+                            <p>@report.Note</p>
+                        }
+                        @foreach (var file in report.Attachments)
+                        {
+                            <a href="@Url.Action("DownloadProjectReportAttachment", "Home", new { id = file.ProjectReportAttachmentId })">@file.FileName (@((file.SizeBytes / 1024.0 / 1024.0).ToString("0.00")) MB) · Download</a>
+                            <br />
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="empty-state">No reports yet.</p>
+            }
+        </section>
+    }
+}

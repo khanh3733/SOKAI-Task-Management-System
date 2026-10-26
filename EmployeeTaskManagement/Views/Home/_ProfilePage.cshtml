@@ -1,0 +1,62 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@{
+    var page = Model.Page;
+}
+@if (page == "Profile")
+{
+    <div class="profile-layout">
+        <nav class="profile-menu" aria-label="Profile settings">
+            <a class="active" href="@Url.Action("Profile", "Home")">♟　Profile</a>
+            <a href="@Url.Action("ChangePassword", "Manage")">♧　Change password</a>
+            <a href="@Url.Action("Notifications", "Home")">♧　Notification settings</a>
+        </nav>
+        <section class="panel profile-panel">
+            <div class="profile-top">
+                @if (Model.CurrentEmployee != null && !String.IsNullOrWhiteSpace(Model.CurrentEmployee.AvatarPath))
+                {
+                    var avatarUrl = Model.CurrentEmployee.AvatarPath.StartsWith("uploads/", StringComparison.Ordinal) ? Url.Action("EmployeeAvatar", "Home", new { id = Model.CurrentEmployee.EmployeeId }) : Model.CurrentEmployee.AvatarPath;
+                    <img class="avatar avatar-large" src="@avatarUrl" alt="Profile image" />
+                }
+                else
+                {
+                    <div class="avatar avatar-large">@(String.IsNullOrWhiteSpace(Model.CurrentUserName) ? "•" : Model.CurrentUserName.Substring(0, 1))</div>
+                }
+                <div>
+                    <h2>@Model.CurrentUserName</h2>
+                    <p>@Model.CurrentUserEmail</p>
+                </div>
+            </div>
+            @if (Model.CurrentEmployee != null)
+            {
+                <dl class="profile-list">
+                    <dt>Full name</dt>
+                    <dd>@Model.CurrentEmployee.FullName</dd>
+                    <dt>Department</dt>
+                    <dd>@(Model.CurrentEmployee.Department == null ? "—" : Model.CurrentEmployee.Department.DepartmentName)</dd>
+                    <dt>Position</dt>
+                    <dd>@(Model.CurrentEmployee.Position ?? "—")</dd>
+                    <dt>Email address</dt>
+                    <dd>@Model.CurrentEmployee.Email</dd>
+                    <dt>Hire date</dt>
+                    <dd>@Model.CurrentEmployee.HireDate.ToString("yyyy/MM/dd")</dd>
+                </dl>
+            }
+            else
+            {
+                <p class="empty-state">No employee profile has been set up yet.</p>
+            }
+            @if (Model.CurrentEmployee != null)
+            {
+                using (Html.BeginForm("UploadAvatar", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <div class="filter-bar">
+                        <input class="form-control" type="file" name="avatar" accept=".png,.jpg,.jpeg,image/png,image/jpeg" required />
+                        <button class="btn btn-default" type="submit">Upload photo</button>
+                    </div>
+                    <small>PNG or JPEG · 5 MB maximum</small>
+                }
+            }
+        </section>
+    </div>
+}

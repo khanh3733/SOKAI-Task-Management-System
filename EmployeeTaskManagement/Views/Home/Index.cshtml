@@ -1,0 +1,98 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@{
+    ViewBag.Title = "Dashboard";
+}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">KOSAIDO WORKSPACE</div>
+        <h1>Dashboard</h1>
+        <p>Hello, @Model.CurrentUserName .</p>
+    </div>
+    <a class="btn btn-primary" href="@Url.Action("Tasks")">＋　View tasks</a>
+</div>
+<div class="row stat-row">
+    <div class="col-sm-4">
+        <div class="stat-card">
+            <span class="stat-icon blue">▣</span>
+            <div>
+                <div class="stat-label">My tasks</div>
+                <strong>@Model.Tasks.Count</strong>
+                <small>In progress @Model.InProgressTasks   ·  Not started @Model.NotStartedTasks</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="stat-card">
+            <span class="stat-icon green">✓</span>
+            <div>
+                <div class="stat-label">Completed tasks</div>
+                <strong>@Model.CompletedTasks</strong>
+                <small>Database summary</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="stat-card">
+            <span class="stat-icon purple">◷</span>
+            <div>
+                <div class="stat-label">Average completion</div>
+                <strong>@Model.AverageProgress%</strong>
+                <div class="progress">
+                    <div class="progress-bar" style="width:@(Model.AverageProgress)%"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-8">
+        <section class="panel">
+            <div class="panel-heading">
+                <h2>Recent tasks</h2>
+                <a href="@Url.Action("Tasks")">View all →</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table app-table">
+                    <thead>
+                        <tr>
+                            <th>Task title</th>
+                            <th>Assignee</th>
+                            <th>Due date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Tasks.Any())
+                        {
+                            foreach (var task in Model.Tasks.Take(5))
+                            {
+                                <tr>
+                                    <td>@task.Title</td>
+                                    <td>@task.AssignedEmployee.FullName</td>
+                                    <td>@(task.DueDate.HasValue ? task.DueDate.Value.ToString("yyyy/MM/dd") : "—")</td>
+                                    <td>@task.Status</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="empty-state">No tasks to display.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <div class="col-md-4">
+        <section class="panel">
+            <div class="panel-heading">
+                <h2>Notifications</h2>
+                <a href="@Url.Action("Notifications")">View all</a>
+            </div>
+            <div class="notice">
+                <b>No notifications</b>
+            </div>
+        </section>
+    </div>
+</div>

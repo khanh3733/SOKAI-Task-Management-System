@@ -1,0 +1,68 @@
+@model EmployeeTaskManagement.Models.WorkspaceViewModel
+@{
+    var statuses = new[] { "Pending", "Confirmed", "In Progress", "On Hold", "Completed Pending Review", "Completed", "Cancelled", "Not Started", "Blocked" };
+}
+
+<p>Progress for projects assigned to you. Task updates are submitted by each assignee.</p>
+<div class="row stat-row">
+    <div class="col-sm-3"><div class="stat-card"><div><div class="stat-label">Project tasks</div><strong>@Model.TotalTasks</strong></div></div></div>
+    <div class="col-sm-3"><div class="stat-card"><div><div class="stat-label">Completed</div><strong>@Model.CompletedTasks</strong></div></div></div>
+    <div class="col-sm-3"><div class="stat-card"><div><div class="stat-label">Overdue</div><strong>@Model.OverdueTasks</strong></div></div></div>
+    <div class="col-sm-3"><div class="stat-card"><div><div class="stat-label">Average progress</div><strong>@Model.AverageProgress%</strong></div></div></div>
+</div>
+
+<section class="panel">
+    <div class="panel-heading"><h2>Tasks by status</h2></div>
+    <div class="manager-status-chart" aria-label="Task count by status">
+        @foreach (var status in statuses)
+        {
+            var count = Model.Tasks.Count(task => task.Status == status);
+            var share = Model.TotalTasks == 0 ? 0 : (int)Math.Round(100.0 * count / Model.TotalTasks);
+            <div class="manager-status-row">
+                <span>@status</span>
+                <div class="progress-track" role="progressbar" aria-label="@status" aria-valuenow="@count" aria-valuemin="0" aria-valuemax="@Math.Max(1, Model.TotalTasks)">
+                    <span style="width:@(share)%"></span>
+                </div>
+                <strong>@count</strong>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-heading"><h2>Project progress</h2><a href="@Url.Action("Tasks", "Home")">Manage members and assign tasks</a></div>
+    @Html.Partial("_ProjectProgressTable", Model.Projects)
+</section>
+
+<section class="panel">
+    <div class="panel-heading"><h2>Progress by employee</h2></div>
+    <div class="table-responsive">
+        <table class="table app-table">
+            <thead><tr><th>Employee</th><th>Tasks</th><th>Completed</th><th>Average progress</th></tr></thead>
+            <tbody>
+                @foreach (var group in Model.Tasks.GroupBy(task => task.AssignedEmployeeId).OrderBy(group => group.First().AssignedEmployee.FullName))
+                {
+                    var progress = (int)Math.Round(group.Average(task => (double)task.Progress));
+                    <tr>
+                        <td>@group.First().AssignedEmployee.FullName</td>
+                        <td>@group.Count()</td>
+                        <td>@group.Count(task => task.Status == "Completed")</td>
+                        <td>@progress%</td>
+                    </tr>
+                }
+                @if (!Model.Tasks.Any())
+                {
+                    <tr><td colspan="4" class="empty-state">No assigned tasks yet.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@foreach (var project in Model.Projects)
+{
+    <section class="panel project-workspace">
+        @Html.Partial("_ProjectSummary", project)
+        @Html.Partial("_ProjectTaskList", project)
+    </section>
+}
