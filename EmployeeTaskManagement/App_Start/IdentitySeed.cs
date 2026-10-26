@@ -1,4 +1,5 @@
 using System;
+using System.Configuration;
 using System.Linq;
 using System.Security.Claims;
 using EmployeeTaskManagement.Models;
@@ -8,15 +9,11 @@ using Microsoft.AspNet.Identity.EntityFramework;
 namespace EmployeeTaskManagement
 {
     /// <summary>
-    /// Creates only the initial roles and demo accounts. Existing users are never modified.
+    /// Creates the initial roles and any explicitly configured bootstrap accounts.
+    /// Existing users are never modified.
     /// </summary>
     internal static class IdentitySeed
     {
-        // Demo-only first-run credentials. Change them here before deploying this sample.
-        private const string AdminEmail = "admin@example.com";
-        private const string AdminPassword = "Admin@12345";
-        private const string UserEmail = "user@example.com";
-        private const string UserPassword = "User@12345";
         private const string SeedClaimType = "urn:employee-task-management:initial-account";
 
         public static void Initialize()
@@ -29,9 +26,34 @@ namespace EmployeeTaskManagement
                 EnsureRole(roleManager, "Manager");
                 EnsureRole(roleManager, "User");
 
-                EnsureAccount(userManager, context, AdminEmail, AdminPassword, "Admin", "admin");
-                EnsureAccount(userManager, context, UserEmail, UserPassword, "User", "user");
+                EnsureConfiguredAccount(userManager, context, "InitialAdminEmail", "InitialAdminPassword", "Admin", "admin");
+                EnsureConfiguredAccount(userManager, context, "InitialUserEmail", "InitialUserPassword", "User", "user");
             }
+        }
+
+        private static void EnsureConfiguredAccount(
+            ApplicationUserManager userManager,
+            ApplicationDbContext context,
+            string emailSetting,
+            string passwordSetting,
+            string roleName,
+            string seedKey)
+        {
+            var email = ConfigurationManager.AppSettings[emailSetting];
+            var password = ConfigurationManager.AppSettings[passwordSetting];
+
+            if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(password))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                throw new ConfigurationErrorsException(
+                    "Both '" + emailSetting + "' and '" + passwordSetting + "' must be configured together.");
+            }
+
+            EnsureAccount(userManager, context, email.Trim(), password, roleName, seedKey);
         }
 
         private static void EnsureRole(RoleManager<IdentityRole> roleManager, string roleName)

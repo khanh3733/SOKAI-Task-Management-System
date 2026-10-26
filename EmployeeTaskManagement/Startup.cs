@@ -1,3 +1,6 @@
+using System.Data.Entity;
+using EmployeeTaskManagement.Migrations;
+using EmployeeTaskManagement.Models;
 using Microsoft.Owin;
 using Owin;
 
@@ -9,6 +12,8 @@ namespace EmployeeTaskManagement
         public void Configuration(IAppBuilder app)
         {
             ConfigureAuth(app);
+            Database.SetInitializer(
+                new MigrateDatabaseToLatestVersion<ApplicationDbContext, Configuration>());
             IdentitySeed.Initialize();
         }
     }
